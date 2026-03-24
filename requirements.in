@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-pymongo
-cryptography
-pydantic
-streamlit
-pandas
-requests
-motor
