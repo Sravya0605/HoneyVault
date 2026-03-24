@@ -1,0 +1,7 @@
+pip-tools
+pytest
+pytest-asyncio
+httpx
+ruff
+black
+python-dotenv

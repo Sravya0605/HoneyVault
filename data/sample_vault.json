@@ -1,0 +1,11 @@
+{ 
+  "ciphertext": "gAAAAABlY_fake_ciphertext_example", 
+  "fake_keys": [ 
+    "AKIAFAKEKEY12345678", 
+    "AKIAFAKEKEY87654321", 
+    "AKIAFAKEKEY11223344" 
+  ], 
+  "metadata": { 
+    "hint": "valid_api_keys_present" 
+  } 
+} 
