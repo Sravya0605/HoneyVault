@@ -8,7 +8,7 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-do-not-use-in-production")
 
     # Honey Encryption / DTE
-    FAKE_KEY_COUNT: int = int(os.getenv("FAKE_KEY_COUNT", "7"))
+    FAKE_KEY_COUNT: int = int(os.getenv("FAKE_KEY_COUNT", "50"))
     
     # API Key Format (AWS-like)
     KEY_PREFIX: str = "AKIA"

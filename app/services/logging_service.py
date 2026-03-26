@@ -31,7 +31,9 @@ class LoggingService:
             event_type=event_type,
         )
 
-        await self._collection().insert_one(log.model_dump(by_alias=True))
+        # Exclude None _id so MongoDB can auto-generate unique ObjectIds.
+        payload = log.model_dump(by_alias=True, exclude={"id"})
+        await self._collection().insert_one(payload)
 
     async def get_logs(self, limit: int = 50):
         cursor = self._collection().find().sort("timestamp", -1).limit(limit)

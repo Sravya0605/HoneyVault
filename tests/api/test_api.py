@@ -81,3 +81,16 @@ async def test_root_and_health_endpoints(client):
     health_response = await client.get("/health")
     assert health_response.status_code == 200
     assert health_response.json()["status"] == "healthy"
+
+
+async def test_sinkhole_allows_multiple_log_entries(client):
+    """
+    Regression test: sinkhole requests should not fail due to duplicate _id in logs.
+    """
+    headers = {"x-api-key": "AKIA1234567890ABCDEF"}
+
+    first = await client.get("/api/cloud/instances", headers=headers)
+    second = await client.get("/api/cloud/instances", headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200

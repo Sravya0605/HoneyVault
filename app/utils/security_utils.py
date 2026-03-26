@@ -1,12 +1,16 @@
-import re 
+import re
 
-def is_valid_api_key_format(key: str) -> bool:  
-    """  
-    Check if key looks like AWS-style key  
-    """  
 
-    pattern = r"^AKIA[A-Z0-9]{16}$"  
-    return bool(re.match(pattern, key)) 
+def is_valid_api_key_format(key: str) -> bool:
+    """
+    Accept AWS-style keys and generic alphanumeric keys for demo workflows.
+    """
+    if not key:
+        return False
+
+    aws_pattern = r"^AKIA[A-Z0-9]{16}$"
+    generic_pattern = r"^[A-Za-z0-9]{16,64}$"
+    return bool(re.match(aws_pattern, key) or re.match(generic_pattern, key))
 
 def mask_key(key: str) -> str:  
     """  
