@@ -1,8 +1,8 @@
 # HoneyVault: Deception-Driven Encryption with HE + DTE + Sinkhole
 
-HoneyVault is a research-oriented MVP that turns encryption from passive protection into an active detection sensor.
+HoneyVault is a research-oriented security platform that turns encryption into both protection and detection.
 
-Instead of returning obvious failure on wrong passwords, it uses Honey Encryption behavior with a Distribution-Transforming Encoder (DTE)-style decoy generator so wrong decryptions still produce plausible cloud credentials. Those decoy credentials are then validated inside a controlled sinkhole service that looks realistic to attackers and produces telemetry for detection.
+Instead of returning obvious decryption failure on wrong passwords, HoneyVault returns plausible decoy credentials. Those credentials are validated against a controlled sinkhole that logs attacker behavior, supports integrity checks, and emits runtime metrics.
 
 ## Why this project exists
 
@@ -11,42 +11,41 @@ Traditional encryption leaks a practical guessing signal:
 - Correct password gives meaningful plaintext
 - Wrong password gives garbage
 
-That enables offline brute-force workflows against weak passwords.
+That makes offline brute-force attacks easier. HoneyVault disrupts this by making wrong decryptions plausible and observable.
 
-HoneyVault disrupts this by making wrong decryptions appear plausible, forcing attackers into a costly validation loop while defenders gain high-value behavioral logs.
-
-## Core idea (unchanged)
+## Core idea
 
 - Honey Encryption behavior for plausible wrong-decryption outcomes
 - DTE-style probabilistic decoy generation for realistic cloud-secret artifacts
-- Validation sinkhole architecture to trap and observe credential verification attempts
+- Sinkhole validation architecture to trap and observe credential checks
+- Tamper-evident hash-chain logs for forensic integrity
+- Runtime SLO and error-budget observability
 
-## What this MVP currently delivers
+## Current capabilities
 
-- FastAPI backend for encrypt, decrypt, and sinkhole endpoints
-- Vault storage in MongoDB
+- FastAPI backend for encrypt, decrypt, sinkhole, readiness, and metrics endpoints
+- MongoDB-backed vault and telemetry storage
 - Memory-hard password derivation using scrypt with per-vault salt
-- DTE-style fake secret sampling (API key plus contextual attributes)
-- Sinkhole telemetry including fake vs real interaction classification
-- Streamlit dashboard with research-facing metrics:
-	- Indistinguishability proxy
-	- Dwell time
-	- Detection latency
-- Attacker simulation scripts for brute-force and key validation workflow
+- Stateful sinkhole decoy progression (lure levels)
+- Rate limiting on sensitive endpoints (decrypt and sinkhole)
+- Role-scoped metrics access (admin and service tokens)
+- Streamlit dashboard with security metrics
+- Benchmark and chaos benchmark attack simulation scripts
+- Dockerized API and dashboard with compose orchestration
 
 ## Repository structure
 
-- app: API, security core, services, database integration
-- attacker: attack simulation tooling
-- dashboard: Streamlit monitoring interface
-- data: sample vault and password files
+- app: API, core security logic, services, DB integration
+- attacker: attacker simulation, benchmark, chaos benchmark
+- dashboard: Streamlit monitoring UI
+- data: sample assets
 
 ## Tech stack
 
-- Python 3.11+ (works with 3.12)
+- Python 3.11+ (tested on 3.12)
 - FastAPI + Uvicorn
-- MongoDB
-- Pydantic
+- MongoDB + Motor
+- Pydantic v2
 - Cryptography (Fernet)
 - Streamlit + Pandas
 
@@ -54,160 +53,170 @@ HoneyVault disrupts this by making wrong decryptions appear plausible, forcing a
 
 ### 1. Clone
 
-		git clone <your-repo-url>
-		cd MP_HE
+git clone <your-repo-url>
+cd HoneyVault
 
 ### 2. Create virtual environment
 
 Windows PowerShell:
 
-		py -3.12 -m venv venv
-		.\venv\Scripts\Activate.ps1
+py -3.12 -m venv venv
+.\venv\Scripts\Activate.ps1
 
 Linux or macOS:
 
-		python3 -m venv venv
-		source venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 
 ### 3. Install dependencies
 
-		pip install -r requirements.txt
+pip install -r requirements.txt
 
 ### 4. Start MongoDB
 
-Ensure MongoDB is running locally at mongodb://localhost:27017
-
-If using Docker for MongoDB only:
-
-		docker run -d --name honeyvault-mongo -p 27017:27017 mongo:7
+Ensure MongoDB is running at `mongodb://localhost:27017`.
 
 ### 5. Configure environment
 
-Create a .env file in the project root:
+Create a `.env` file in the project root:
 
-		SECRET_KEY=change-this-in-real-deployments
-		MONGO_URI=mongodb://localhost:27017
-		FAKE_KEY_COUNT=7
-		KDF_N=16384
-		KDF_R=8
-		KDF_P=1
-		KDF_DKLEN=32
+APP_ENV=development
+SECRET_KEY=change-this-in-real-deployments
+ADMIN_API_TOKEN=change-admin-token
+SERVICE_API_TOKEN=change-service-token
+METRICS_AUTH_ENABLED=true
+SLO_AVAILABILITY_TARGET=0.995
+MONGO_URI=mongodb://localhost:27017
+FAKE_KEY_COUNT=50
+KDF_N=16384
+KDF_R=8
+KDF_P=1
+KDF_DKLEN=32
+RATE_LIMIT_WINDOW_SECONDS=60
+SINKHOLE_RATE_LIMIT=120
+DECRYPT_RATE_LIMIT=30
 
-### 6. Run backend API
+### 6. Run API
 
-		uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-API docs:
-
-- http://127.0.0.1:8000/docs
+- Docs: http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8000/health
+- Ready: http://127.0.0.1:8000/ready
 
 ### 7. Run dashboard
 
-In a second terminal:
+In another terminal:
 
-		streamlit run dashboard/dashboard.py
+streamlit run dashboard/dashboard.py
 
-Dashboard URL:
+- Dashboard URL: http://localhost:8501
 
-- http://localhost:8501
+### 8. Run attacker simulation and benchmarks
 
-### 8. Run attacker simulation (optional demo)
+python attacker/attacker.py
+python attacker/benchmark.py
+python attacker/chaos_benchmark.py
 
-In a third terminal:
+## Docker deployment
 
-		cd attacker
-		python attacker.py
+### Build and run full stack
+
+Set secrets first (PowerShell):
+
+$env:SECRET_KEY="replace-me"
+$env:ADMIN_API_TOKEN="replace-admin-token"
+$env:SERVICE_API_TOKEN="replace-service-token"
+
+Run compose:
+
+docker compose up --build
+
+Services:
+
+- API: http://127.0.0.1:8000
+- Dashboard: http://127.0.0.1:8501
 
 ## API overview
 
 ### Encrypt vault
 
 - Method: POST
-- Path: /api/encrypt
+- Path: `/api/encrypt`
 - Body:
 
-		{
-			"password": "secure123",
-			"aws_api_key": "AKIAREALKEY12345678"
-		}
+{
+"password": "secure12345",
+"aws_api_key": "AKIAREALKEY12345678"
+}
 
 ### Decrypt vault
 
 - Method: POST
-- Path: /api/decrypt
-- Body:
+- Path: `/api/decrypt`
+- Body (vault id mode):
 
-		{
-			"password": "candidate-password",
-			"vault": { ... }
-		}
+{
+"password": "candidate-password",
+"vault_id": "<mongo-object-id>"
+}
 
-Response status is either real or fake, and both can look plausible to an attacker.
+Notes:
+
+- Exactly one of `vault_id` or `vault` must be provided
+- Response status is `real` or `fake`
+- Endpoint is rate-limited
 
 ### Sinkhole endpoints
 
-- GET /api/cloud/instances
-- GET /api/storage/buckets
-- POST /api/cloud/start-instance
+- GET `/api/cloud/instances`
+- GET `/api/storage/buckets`
+- POST `/api/cloud/start-instance`
 
 Header required:
 
-- x-api-key: <candidate key>
+- `x-api-key: <candidate key>`
 
-## Research metrics included
+Behavior:
 
-- Indistinguishability proxy:
-	Balance-based proxy showing how difficult it is to separate fake vs real interactions using simple output ratios.
-- Dwell time:
-	Time span attackers remain engaged with fake credentials.
-- Detection latency:
-	Time from first observed event to first fake-key interaction detection.
+- Honey keys receive decoy responses with lure progression
+- Non-honey keys receive real-path simulated responses
+- Invalid key formats return HTTP 401
 
-## Deployment options
+### Metrics and integrity endpoints
 
-### Option A: Single VM (simple MVP deployment)
+- GET `/api/metrics/summary` (admin)
+- GET `/api/metrics/integrity` (admin)
+- GET `/api/metrics/slo` (admin)
+- GET `/api/metrics/prometheus` (admin or service)
 
-1. Provision Ubuntu VM
-2. Install Python, MongoDB, Nginx
-3. Copy project and install requirements
-4. Run API with systemd + Uvicorn
-5. Reverse proxy with Nginx
-6. Run Streamlit as separate systemd service
+Auth headers:
 
-### Option B: Containerized deployment
+- Admin: `x-api-token: <ADMIN_API_TOKEN>` (legacy `x-admin-token` still supported)
+- Service: `x-api-token: <SERVICE_API_TOKEN>` (prometheus endpoint)
 
-Use one container for API and one for dashboard, with managed MongoDB.
+## Security and reliability metrics
 
-Suggested production improvements before final deployment:
+- Indistinguishability proxy
+- Detection latency
+- Dwell time
+- Session risk scoring
+- Log-chain integrity verification
+- Availability and error budget remaining
+- Latency and status-code buckets
 
-- Restrict CORS
-- Rotate secret management to vault service
-- Add auth for dashboard
-- Add rate controls and API gateway
-- Add persistent monitoring stack (Prometheus/Grafana or equivalent)
+## Limitations
 
-## MVP submission notes (for competitions)
-
-To maximize judging outcomes, focus your demo on this attack-defender story:
-
-1. Show stolen vault and offline brute-force workflow
-2. Show multiple plausible decrypted keys from wrong attempts
-3. Show attacker validating keys against sinkhole
-4. Show live telemetry in dashboard
-5. Report the three research metrics from your run
-
-## Limitations (honest)
-
-- This is a strong research MVP, not a finalized production security platform
-- Indistinguishability metric is currently a practical proxy, not a formal proof
-- Sinkhole realism can be further expanded with deeper stateful cloud simulation
+- Strong research platform, but not a full multi-tenant enterprise product
+- Indistinguishability is a practical proxy, not a formal proof
+- In-memory rate limiting should be replaced with distributed counters at scale
 
 ## Roadmap
 
-- More rigorous DTE modeling and calibration from empirical credential datasets
-- Automated experiment runner with repeatable seeds and statistical confidence intervals
-- Test suite with integration and adversarial benchmarks
-- Better multi-tenant deployment and policy controls
+- Stronger formal modeling for DTE behavior
+- Distributed rate limiting and key management integration
+- Multi-tenant RBAC and policy controls
+- Expanded chaos/failure testing scenarios
 
 ## License
 
@@ -215,4 +224,4 @@ Add your preferred license here before public release.
 
 ## Acknowledgment
 
-This project is inspired by Honey Encryption research and modern cyber deception architecture patterns.
+Inspired by Honey Encryption research and modern cyber deception architecture.

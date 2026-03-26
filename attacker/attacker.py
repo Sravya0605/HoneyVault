@@ -23,12 +23,12 @@ def run_attack():
     print("[STEP 2] Running brute-force attack\n")
 
     passwords = [
-        "123456",
-        "password",
-        "admin",
-        "letmein",
+        "12345678",
+        "password1",
+        "admin1234",
+        "letmein1",
         "secure123",  # correct one hidden inside
-        "qwerty"
+        "qwerty12"
     ]
 
     brute = BruteForcer(API_URL)
@@ -40,6 +40,12 @@ def run_attack():
 
     for result in results:
         key = result["key"]
+        if not key:
+            print(
+                f"\n[ATTACKER] Skipping key validation for password '{result['password']}' "
+                f"(HTTP {result['http_status']}, status={result['status']}, error={result['error']})\n"
+            )
+            continue
         print(f"\n[ATTACKER] Testing key: {key}\n")
         validator.test_key(key)
 

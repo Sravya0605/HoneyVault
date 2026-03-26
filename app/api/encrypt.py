@@ -1,13 +1,13 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.services.vault_service import VaultService
 
 router = APIRouter()
 vault_service = VaultService()
 
 class EncryptRequest(BaseModel):
-    password: str
-    aws_api_key: str
+    password: str = Field(min_length=8, max_length=256)
+    aws_api_key: str = Field(min_length=16, max_length=64)
 
 @router.post("/encrypt")
 async def encrypt_vault(req: EncryptRequest):

@@ -19,6 +19,15 @@ class MongoDB:
             self.client.close()
             print("MongoDB connection closed.")
 
+    async def ping(self) -> bool:
+        if self.db is None:
+            return False
+        try:
+            await self.db.command("ping")
+            return True
+        except Exception:
+            return False
+
     def get_database(self):
         """
         Returns the database instance.

@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - APP_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
+      - SERVICE_API_TOKEN=${SERVICE_API_TOKEN}
+      - METRICS_AUTH_ENABLED=true
+      - SLO_AVAILABILITY_TARGET=0.995
+      - MONGO_URI=mongodb://mongo:27017
+      - FAKE_KEY_COUNT=50
+      - RATE_LIMIT_WINDOW_SECONDS=60
+      - SINKHOLE_RATE_LIMIT=120
+      - DECRYPT_RATE_LIMIT=30
+      - CORS_ORIGINS=http://localhost:8501
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+
+volumes:
+  mongo_data:

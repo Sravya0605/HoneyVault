@@ -4,6 +4,7 @@
 #
 #    pip-compile requirements.in
 #
+# Runtime dependency set validated for Phase 1-5 upgrades (no additional packages required).
 altair==6.0.0
     # via streamlit
 annotated-doc==0.0.4
