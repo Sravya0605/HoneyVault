@@ -1,34 +1,41 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MongoDB:
     def __init__(self):
         self.client: AsyncIOMotorClient | None = None
-        self.db = None
+        self.db: AsyncIOMotorDatabase | None = None
 
     async def connect(self):
-        """Establishes an asynchronous connection to the MongoDB server."""
-        print("Connecting to MongoDB...")
-        self.client = AsyncIOMotorClient(settings.MONGO_URI)
-        self.db = self.client[settings.DB_NAME]
-        print("MongoDB connection established.")
+        """Establish MongoDB connection."""
+        try:
+            logger.info("Connecting to MongoDB...")
+            self.client = AsyncIOMotorClient(settings.MONGO_URI)
+
+            # Force connection
+            await self.client.admin.command("ping")
+
+            self.db = self.client[settings.DB_NAME]
+            logger.info("MongoDB connection established.")
+
+        except Exception as e:
+            logger.error(f"MongoDB connection failed: {e}")
+            raise e
 
     async def close(self):
-        """Closes the MongoDB connection."""
+        """Close MongoDB connection."""
         if self.client:
             self.client.close()
-            print("MongoDB connection closed.")
+            logger.info("MongoDB connection closed.")
 
-    def get_database(self):
-        """
-        Returns the database instance.
-
-        Raises:
-            Exception: If the database is not initialized.
-        """
+    def get_database(self) -> AsyncIOMotorDatabase:
         if self.db is None:
-            raise Exception("Database not initialized. Call connect() first.")
+            raise Exception("MongoDB not connected. Did startup_event run?")
         return self.db
+
 
 # Singleton instance
 mongo = MongoDB()

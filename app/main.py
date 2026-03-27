@@ -59,11 +59,17 @@ async def shutdown_event():
 # Root Endpoint
 # -----------------------------
 @app.get("/")
-def root():
+async def root():
+    try:
+        await mongo.client.admin.command("ping")
+        db_status = "connected"
+    except:
+        db_status = "disconnected"
+
     return {
-        "message": "HoneyVault API is running",
-        "version": "1.0.0",
-        "status": "active"
+        "service": "HoneyVault",
+        "status": "running",
+        "database": db_status
     }
 
 # -----------------------------
