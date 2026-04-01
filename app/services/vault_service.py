@@ -2,7 +2,7 @@ from app.core.security import HoneyEncryption
 from app.models.vault import VaultModel
 from app.db.mongo import mongo
 from bson import ObjectId
-
+import hashlib
 
 class VaultService:
     def __init__(self):
@@ -16,15 +16,14 @@ class VaultService:
 
         vault_data = self.he.encrypt(data, password)
 
-        vault_data["real_api_key"] = aws_api_key
+        # Store real key for sinkhole detection
+        hashed_key = hashlib.sha256(aws_api_key.encode()).hexdigest()
+        vault_data["real_api_key_hash"] = hashed_key
 
         vault = VaultModel(**vault_data)
-
         vault_dict = vault.model_dump(by_alias=True, exclude={'id'})
 
         collection = self._collection()
-
-        await collection.create_index("fake_keys")
         await collection.create_index("real_api_key")
 
         result = await collection.insert_one(vault_dict)
@@ -37,7 +36,7 @@ class VaultService:
     async def get_vault(self, vault_id: str) -> dict | None:
         try:
             obj_id = ObjectId(vault_id)
-        except Exception:
+        except:
             return None
 
         vault = await self._collection().find_one({"_id": obj_id})

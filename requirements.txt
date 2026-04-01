@@ -77,6 +77,8 @@ pandas==2.3.3
     #   streamlit
 pillow==12.1.1
     # via streamlit
+plotly==5.15.0
+    # via streamlit
 protobuf==6.33.6
     # via streamlit
 pyarrow==23.0.1

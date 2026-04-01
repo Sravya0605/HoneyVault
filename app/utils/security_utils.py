@@ -8,7 +8,7 @@ def is_valid_api_key_format(key: str) -> bool:
     if not key:
         return False
 
-    aws_pattern = r"^AKIA[A-Z0-9]{16}$"
+    aws_pattern = r"^(AKIA|ASIA|ANPA)[A-Z0-9]{16}$"
     generic_pattern = r"^[A-Za-z0-9]{16,64}$"
     return bool(re.match(aws_pattern, key) or re.match(generic_pattern, key))
 

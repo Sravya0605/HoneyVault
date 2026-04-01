@@ -60,16 +60,24 @@ async def shutdown_event():
 # -----------------------------
 @app.get("/")
 async def root():
-    try:
-        await mongo.client.admin.command("ping")
-        db_status = "connected"
-    except:
-        db_status = "disconnected"
+    db = mongo.get_database()
+
+    vault_count = await db["vaults"].count_documents({})
+    log_count = await db["logs"].count_documents({})
 
     return {
         "service": "HoneyVault",
         "status": "running",
-        "database": db_status
+        "database": "connected",
+        "collections": {
+            "vaults": vault_count,
+            "logs": log_count
+        },
+        "features": {
+            "honey_encryption": True,
+            "sinkhole": True,
+            "logging": True
+        }
     }
 
 # -----------------------------

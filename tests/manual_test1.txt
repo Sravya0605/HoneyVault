@@ -1,423 +1,58 @@
 {
-  "password": "test2",
+  "password": "test4",
   "aws_api_key": "AKIAIOSFODNN7EXAMPLE"
 }
 
 {
   "message": "Vault created successfully",
-  "vault_id": "69c617ed27a593d3e0d108c4",
+  "vault_id": "69c7e1158226c4eb8da40d9d",
   "vault": {
-    "ciphertext": "gAAAAABpxhftBqp3wv8HnJi-O0QcGwfhDvWxPK39zVWtgT5L3iYCJJUWTQJQhtMC0yffDpKt45aeqqd9j2ET6aS_HiHd-yY2nor9SyY39wdK0Qs7jkYzShRQxprzEcsRyc_i2tQ5NVq6",
-    "salt": "4bnMyPRrvnb1eqo8EodAMw==",
-    "fake_keys": [
-      "AKIAQMB1RY5TVEMM2JXN",
-      "AKIAJENR00EMEWC1TDWJ",
-      "AKIA3Y79UMDP5M4WL78Q",
-      "AKIAHIIVIODADHFZ438I",
-      "AKIANI8DLYGTS0SO0U2A",
-      "AKIAPP96BZFZP9FAKJ2X",
-      "AKIA8PXK37X8RAG262RR",
-      "AKIASD4U886XSQTI1S32",
-      "AKIAWQR1QTGSUC2ZZ4CA",
-      "AKIA7C1PR1889WXDNOM8",
-      "AKIA2KZWY90GIVP83KHV",
-      "AKIA39ZPKL01OGDJ99QL",
-      "AKIAU4RDGDGGLQ48KL0H",
-      "AKIARMOLRO90BM2CUHWP",
-      "AKIA5ZBJ6BQJTFTLLM33",
-      "AKIA8H973Y39ZNLU36GZ",
-      "AKIAGDTOYHGY02UA1B4N",
-      "AKIAFZWBWEFYHFD91EWX",
-      "AKIAGLN5816TUHUPJB34",
-      "AKIALO9BOG6D22PCJ2FT",
-      "AKIAJMOTBTESCWDFL3YP",
-      "AKIAZCDMD966120VJLPG",
-      "AKIA7A00HQ5QTFTNOM0E",
-      "AKIAGI8FAZN7921PSAF8",
-      "AKIAG39QIF2FLTLYKUPG",
-      "AKIA7E0DV3W5MSY4ROZT",
-      "AKIA351FP5VVV8GACXAT",
-      "AKIACR4XFF5Y74MN41NS",
-      "AKIAU9RRMVREUZL5W6DF",
-      "AKIANE75QHAR0VB6M1PJ",
-      "AKIARJC04OHRGMON48HO",
-      "AKIA1G97MVNBY8HCIM2L",
-      "AKIAT5MJRQ0IVCFYPWO1",
-      "AKIA2ILI29ELKZSF3Q83",
-      "AKIARESAZ83VFGKELCWW",
-      "AKIA4Y996Q0SDQZ8CAWZ",
-      "AKIAMF37A866B2ZO345D",
-      "AKIAH7ZMIZ0RIN0ZW0ZF",
-      "AKIA7V6BY3YS31CI0ENR",
-      "AKIA3FPCCPNXOT2856LE",
-      "AKIAQIYQNASUT7RT0XGV",
-      "AKIAM7WSHTT3GGFMQ36W",
-      "AKIATILMNPANFPVK73KK",
-      "AKIAWK78ZJUB7GPSPVPR",
-      "AKIAJ0H03R3Q000A93T9",
-      "AKIA4XRK2S9KMDJUC1LN",
-      "AKIA7PIG8CYTQ1MOLYHE",
-      "AKIAIY6E5PIJ2XP4W4KN",
-      "AKIALZEWJ4GA792A3OO3",
-      "AKIAHD5283P1WUT4R9BY"
-    ],
-    "fake_secrets": [
-      {
-        "aws_api_key": "AKIAQMB1RY5TVEMM2JXN",
-        "service": "iam",
-        "region": "us-east-1",
-        "account_hint": "943877790145",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAJENR00EMEWC1TDWJ",
-        "service": "cloudtrail",
-        "region": "sa-east-1",
-        "account_hint": "162704140576",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA3Y79UMDP5M4WL78Q",
-        "service": "rds",
-        "region": "us-east-1",
-        "account_hint": "568165351631",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAHIIVIODADHFZ438I",
-        "service": "iam",
-        "region": "us-west-2",
-        "account_hint": "184501693231",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIANI8DLYGTS0SO0U2A",
-        "service": "rds",
-        "region": "sa-east-1",
-        "account_hint": "775764173689",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAPP96BZFZP9FAKJ2X",
-        "service": "s3",
-        "region": "us-west-2",
-        "account_hint": "457593911670",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA8PXK37X8RAG262RR",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "722716007676",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIASD4U886XSQTI1S32",
-        "service": "ec2",
-        "region": "us-west-2",
-        "account_hint": "477587953823",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAWQR1QTGSUC2ZZ4CA",
-        "service": "s3",
-        "region": "eu-west-1",
-        "account_hint": "310776859380",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA7C1PR1889WXDNOM8",
-        "service": "cloudtrail",
-        "region": "sa-east-1",
-        "account_hint": "662949326224",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA2KZWY90GIVP83KHV",
-        "service": "s3",
-        "region": "sa-east-1",
-        "account_hint": "785952197139",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA39ZPKL01OGDJ99QL",
-        "service": "lambda",
-        "region": "eu-west-1",
-        "account_hint": "990654806940",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAU4RDGDGGLQ48KL0H",
-        "service": "ec2",
-        "region": "us-east-1",
-        "account_hint": "196131367053",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIARMOLRO90BM2CUHWP",
-        "service": "iam",
-        "region": "us-east-1",
-        "account_hint": "561351770349",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIA5ZBJ6BQJTFTLLM33",
-        "service": "lambda",
-        "region": "us-east-1",
-        "account_hint": "890537851569",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA8H973Y39ZNLU36GZ",
-        "service": "rds",
-        "region": "eu-west-1",
-        "account_hint": "586734823791",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAGDTOYHGY02UA1B4N",
-        "service": "s3",
-        "region": "us-west-2",
-        "account_hint": "899111377484",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAFZWBWEFYHFD91EWX",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "203423455472",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAGLN5816TUHUPJB34",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "554967240089",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIALO9BOG6D22PCJ2FT",
-        "service": "lambda",
-        "region": "ap-southeast-1",
-        "account_hint": "709687486086",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAJMOTBTESCWDFL3YP",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "694144729610",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAZCDMD966120VJLPG",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "171137731374",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA7A00HQ5QTFTNOM0E",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "692156313552",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAGI8FAZN7921PSAF8",
-        "service": "iam",
-        "region": "eu-west-1",
-        "account_hint": "928434575832",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAG39QIF2FLTLYKUPG",
-        "service": "ec2",
-        "region": "us-east-1",
-        "account_hint": "996075575369",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIA7E0DV3W5MSY4ROZT",
-        "service": "s3",
-        "region": "eu-west-1",
-        "account_hint": "625868130809",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA351FP5VVV8GACXAT",
-        "service": "ec2",
-        "region": "us-east-1",
-        "account_hint": "232643646025",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIACR4XFF5Y74MN41NS",
-        "service": "s3",
-        "region": "eu-west-1",
-        "account_hint": "676553375181",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAU9RRMVREUZL5W6DF",
-        "service": "iam",
-        "region": "ap-southeast-1",
-        "account_hint": "585928518724",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIANE75QHAR0VB6M1PJ",
-        "service": "iam",
-        "region": "ap-southeast-1",
-        "account_hint": "144756243536",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIARJC04OHRGMON48HO",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "338936750540",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA1G97MVNBY8HCIM2L",
-        "service": "s3",
-        "region": "ap-southeast-1",
-        "account_hint": "504615216257",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAT5MJRQ0IVCFYPWO1",
-        "service": "ec2",
-        "region": "ap-southeast-1",
-        "account_hint": "162895250274",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA2ILI29ELKZSF3Q83",
-        "service": "s3",
-        "region": "sa-east-1",
-        "account_hint": "584328233610",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIARESAZ83VFGKELCWW",
-        "service": "s3",
-        "region": "us-west-2",
-        "account_hint": "378958654951",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIA4Y996Q0SDQZ8CAWZ",
-        "service": "iam",
-        "region": "us-east-1",
-        "account_hint": "339869805411",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAMF37A866B2ZO345D",
-        "service": "s3",
-        "region": "us-west-2",
-        "account_hint": "149197808116",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAH7ZMIZ0RIN0ZW0ZF",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "460096501080",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA7V6BY3YS31CI0ENR",
-        "service": "s3",
-        "region": "sa-east-1",
-        "account_hint": "441658376117",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA3FPCCPNXOT2856LE",
-        "service": "cloudtrail",
-        "region": "ap-southeast-1",
-        "account_hint": "169728114067",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAQIYQNASUT7RT0XGV",
-        "service": "iam",
-        "region": "sa-east-1",
-        "account_hint": "942073700917",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAM7WSHTT3GGFMQ36W",
-        "service": "rds",
-        "region": "eu-west-1",
-        "account_hint": "108092107195",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIATILMNPANFPVK73KK",
-        "service": "rds",
-        "region": "eu-west-1",
-        "account_hint": "713579313109",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAWK78ZJUB7GPSPVPR",
-        "service": "rds",
-        "region": "us-west-2",
-        "account_hint": "800705282281",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAJ0H03R3Q000A93T9",
-        "service": "rds",
-        "region": "us-west-2",
-        "account_hint": "602417322154",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA4XRK2S9KMDJUC1LN",
-        "service": "s3",
-        "region": "eu-west-1",
-        "account_hint": "355456819766",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIA7PIG8CYTQ1MOLYHE",
-        "service": "iam",
-        "region": "us-east-1",
-        "account_hint": "264586662671",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIAIY6E5PIJ2XP4W4KN",
-        "service": "iam",
-        "region": "us-west-2",
-        "account_hint": "265821300592",
-        "access_scope": "read-only"
-      },
-      {
-        "aws_api_key": "AKIALZEWJ4GA792A3OO3",
-        "service": "s3",
-        "region": "us-east-1",
-        "account_hint": "825182977058",
-        "access_scope": "mixed"
-      },
-      {
-        "aws_api_key": "AKIAHD5283P1WUT4R9BY",
-        "service": "s3",
-        "region": "ap-southeast-1",
-        "account_hint": "981637259672",
-        "access_scope": "read-only"
-      }
-    ],
+    "ciphertext": "gAAAAABpx-EVhDv5yvMzsToBLx--kbkPpnJ__RE6qgU-xjLquWndcC6LbSB3yhF1D71RRzl94isvK9rCguHGgK4zfE5XQDKqcy14JoeIqT5JDpkI0zzNs-1kml__ixGYZwdADHJE9zLV",
+    "salt": "LKIZ9IpfhWUgdWIKzYu4Aw==",
     "metadata": {
-      "hint": "valid_api_keys_present",
-      "scheme": "HE+DTE+Sinkhole",
-      "version": "2"
+      "scheme": "PURE_HE_DTE",
+      "version": "3"
     },
     "real_api_key": "AKIAIOSFODNN7EXAMPLE"
+  }
+}
+
+decryption
+{
+  "password": "string",
+  "vault_id": "69c7e1158226c4eb8da40d9d",
+  "vault": {
+    "additionalProp1": {}
+  }
+}
+
+{
+  "status": "fake",
+  "data": {
+    "aws_api_key": "AKIABIWN9SCRWRAUH1A9",
+    "service": "rds",
+    "region": "us-east-1",
+    "account_hint": "131832836670",
+    "access_scope": "mixed"
+  }
+}
+
+
+{
+  "password": "test5",
+  "aws_api_key": "AKIAIOSFODNN7EXAMPLE"
+}
+{
+  "message": "Vault created successfully",
+  "vault_id": "69c7e81248008660253e8427",
+  "vault": {
+    "ciphertext": "gAAAAABpx-gSzt9fDLQZrAjqZ7me6Cln27QMbCy5kfJYnbGmUP0OgVgyIkjquWgRXDO6K652z1zghZ5gsASQgwD6v8SfLK-_M9NRPp-BixaosepAf_GACxw4B8_JmzTG0rFtbjKFkg4z",
+    "salt": "sCNdU3oWXvxCb-0ZYKTxYQ==",
+    "real_seed": "33601180117341052628949521343171938236875526745422528208709843536073638228879",
+    "metadata": {
+      "scheme": "HE_DTE_SEEDED",
+      "version": "4"
+    },
+    "real_api_key_hash": "1a5d44a2dca19669d72edf4c4f1c27c4c1ca4b4408fbb17f6ce4ad452d78ddb3"
   }
 }
