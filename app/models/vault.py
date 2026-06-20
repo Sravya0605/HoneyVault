@@ -7,9 +7,8 @@ class VaultModel(BaseModel):
 
     ciphertext: str
     salt: str
-    real_seed: str
-
-    real_api_key_hash: str
+    nonce: Optional[str] = None
+    tag: Optional[str] = None
 
     metadata: Dict[str, Any]
 

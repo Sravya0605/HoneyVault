@@ -30,7 +30,7 @@ async def test_create_and_decrypt_vault_success(client):
     
     assert decrypt_response.status_code == 200
     decrypt_data = decrypt_response.json()
-    assert decrypt_data["status"] == "real"
+    assert decrypt_data["status"] == "success"
     assert decrypt_data["data"]["aws_api_key"] == "AKIAREALKEY12345678"
 
 async def test_decrypt_vault_with_wrong_password(client):
@@ -54,7 +54,7 @@ async def test_decrypt_vault_with_wrong_password(client):
     
     assert decrypt_response.status_code == 200
     decrypt_data = decrypt_response.json()
-    assert decrypt_data["status"] == "fake"
+    assert decrypt_data["status"] == "success"
     assert decrypt_data["data"]["aws_api_key"] != "AKIAREALKEY12345678"
 
 async def test_decrypt_nonexistent_vault(client):

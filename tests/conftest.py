@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.main import app
@@ -8,7 +8,7 @@ from app.db.mongo import mongo
 from app.core.config import settings
 
 # Set up a separate test database
-TEST_MONGO_URI = f"{settings.MONGO_URI}_test"
+TEST_MONGO_URI = settings.MONGO_URI
 TEST_DB_NAME = f"{settings.DB_NAME}_test"
 
 @pytest.fixture(scope="session")
@@ -52,5 +52,6 @@ async def client(db) -> AsyncClient:
     """
     Fixture to create a test client for the FastAPI app.
     """
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

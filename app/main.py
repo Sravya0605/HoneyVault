@@ -1,22 +1,54 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import uvicorn
 from app.api.router import api_router
 from app.db.mongo import mongo
 from app.core.config import settings
 
-# -----------------------------
-# App Initialization
-# -----------------------------
+# ============================================================
+# LIFESPAN CONTEXT MANAGER (FastAPI 0.93+)
+# ============================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan: startup and shutdown logic.
+    
+    Replaces deprecated @app.on_event("startup") and @app.on_event("shutdown").
+    """
+    # Startup
+    print("=" * 60)
+    print("  HoneyVault v5.0 Starting...")
+    print("=" * 60)
+    try:
+        await mongo.connect()
+        print(" MongoDB connected")
+        db = mongo.get_database()
+        print(f"Database: {db.name}")
+    except Exception as e:
+        print(f" MongoDB connection warning: {e}")
+    print("=" * 60)
+    
+    yield  # Application runs here
+    
+    # Shutdown
+    print(" HoneyVault shutting down...")
+    try:
+        await mongo.close()
+    except Exception as e:
+        print(f" Shutdown warning: {e}")
+
+# ============================================================
+# APP INITIALIZATION
+# ============================================================
 app = FastAPI(
-    title="HoneyVault API",
-    description="Deception-Driven Encryption with Honey Encryption + Sinkhole Architecture",
-    version="1.0.0"
+    title="HoneyVault",
+    lifespan=lifespan  # Use new lifespan context manager
 )
 
-# -----------------------------
-# Middleware (CORS)
-# -----------------------------
+# ============================================================
+# MIDDLEWARE
+# ============================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -25,69 +57,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------
-# Include API Routes
-# -----------------------------
+# ============================================================
+# ROUTES
+# ============================================================
 app.include_router(api_router, prefix="/api")
 
-# -----------------------------
-# Startup Event
-# -----------------------------
-@app.on_event("startup")
-async def startup_event():
-    print("Starting HoneyVault System...")
-    try:
-        await mongo.connect()
-        print("MongoDB connected successfully")
-        # Note: indexes are created lazily on first insert; skipping explicit creation
-    except Exception as e:
-        print(f"Warning: MongoDB connection issue: {e}")
-        print("(Ensure MongoDB is running at " + settings.MONGO_URI + ")")
+# ============================================================
+# STARTUP & SHUTDOWN
+# ============================================================
+# Now handled by lifespan context manager above
 
-# -----------------------------
-# Shutdown Event
-# -----------------------------
-@app.on_event("shutdown")
-async def shutdown_event():
-    print("Shutting down HoneyVault System...")
-    try:
-        await mongo.close()
-    except Exception as e:
-        print(f"Warning during shutdown: {e}")
-
-# -----------------------------
-# Root Endpoint
-# -----------------------------
+# ============================================================
+# SYSTEM ENDPOINTS
+# ============================================================
 @app.get("/")
 async def root():
+    """Root endpoint with system status."""
     db = mongo.get_database()
-
     vault_count = await db["vaults"].count_documents({})
     log_count = await db["logs"].count_documents({})
-
+    # Use await for async MongoDB driver (no blocking sync calls in async context)
+    cred_count = await db["real_credentials"].count_documents({})
+    
     return {
-        "service": "HoneyVault",
-        "status": "running",
-        "database": "connected",
-        "collections": {
+        "service": "HoneyVault v5.0",
+        "status": "Running",
+        "encryption": "Real Honey Encryption with True DTE",
+        "database": {
             "vaults": vault_count,
-            "logs": log_count
+            "logs": log_count,
+            "real_credentials": cred_count
         },
         "features": {
             "honey_encryption": True,
+            "dte": "bijective_true",
             "sinkhole": True,
-            "logging": True
+            "logging": True,
+            "adaptive_learning": True,
+            "research_metrics": True
         }
     }
 
-# -----------------------------
-# Health Check (Important)
-# -----------------------------
 @app.get("/health")
 def health_check():
-    # In a real-world scenario, this might also check db connectivity
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+@app.get("/docs/api")
+async def api_documentation():
+    """Quick reference for all endpoints."""
     return {
-        "status": "healthy"
+        "encryption": {
+            "POST /api/encrypt": "Create vault with real credential",
+            "POST /api/decrypt": "Decrypt vault with any password (HE property)"
+        },
+        "sinkhole": {
+            "GET /api/cloud/instances": "Sinkhole endpoint (checks registry)",
+            "GET /api/storage/buckets": "Sinkhole endpoint"
+        }
     }
 
 # -----------------------------

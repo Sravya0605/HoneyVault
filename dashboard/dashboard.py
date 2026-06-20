@@ -3,57 +3,111 @@ import pandas as pd
 from pymongo import MongoClient
 import plotly.express as px
 import time
+import hashlib
+from datetime import datetime
 
 # -----------------------------
-# Simple Auth System
+# Auth Helpers
 # -----------------------------
-def login():
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def create_admin_if_not_exists(database):
+    if database is None:
+        return
+    users = database["users"]
+    if users.count_documents({"username": "admin"}) == 0:
+        users.insert_one({
+            "username": "admin",
+            "password": hash_password("admin123")
+        })
+
+def login(database):
+    # Hide sidebar
     st.markdown("""
-        <style>
-        .login-box {
-            background-color: #111;
-            padding: 30px;
-            border-radius: 15px;
-            border: 1px solid #333;
-            max-width: 400px;
-            margin: auto;
-            margin-top: 100px;
-        }
-        .stTextInput > div > div > input {
-            background-color: #222;
-            color: white;
-        }
-        </style>
+    <style>
+    [data-testid="stSidebar"] {display: none;}
+    
+    /* Login Page Styling */
+    .stApp {
+        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    }
+    
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-top: 100px;
+    }
+    
+    .login-box {
+        background: rgba(17, 17, 17, 0.95);
+        padding: 40px;
+        border-radius: 20px;
+        border: 1px solid #333;
+        width: 400px;
+        text-align: center;
+        box-shadow: 0 0 25px rgba(0,0,0,0.6);
+    }
+    
+    .title-header {
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 5px;
+    }
+    
+    .subtitle-header {
+        color: #888;
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+
+    .stTextInput input {
+        background-color: #222 !important;
+        color: white !important;
+        border-radius: 8px;
+    }
+    
+    .stButton button {
+        width: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #00c6ff, #0072ff);
+        color: white;
+        font-weight: bold;
+        border: none;
+        height: 45px;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.title("HoneyVault Login")
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown('<div class="login-box">', unsafe_allow_html=True)
+        st.markdown('<div class="title-header">HoneyVault</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtitle-header">Threat Intelligence Access Portal</div>', unsafe_allow_html=True)
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+        username = st.text_input("Username", key="login_user")
+        password = st.text_input("Password", type="password", key="login_pass")
 
-    if st.button("Login"):
-        if username == "admin" and password == "admin123":
-            st.session_state["authenticated"] = True
-            st.success("Login successful")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# Initialize session
-if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = False
-
-# If not logged in → show login page
-if not st.session_state["authenticated"]:
-    login()
-    st.stop()
+        if st.button("Login"):
+            if database is None:
+                st.error("Database not connected")
+            else:
+                user = database["users"].find_one({"username": username})
+                if user and user["password"] == hash_password(password):
+                    st.session_state["authenticated"] = True
+                    st.success("Access Granted")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------
-# Config
+# Config & Database
 # -----------------------------
 MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "honeyvault"
@@ -63,8 +117,33 @@ st.set_page_config(
     layout="wide"
 )
 
+@st.cache_resource
+def get_db():
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        client.admin.command('ping')
+        return client[DB_NAME]
+    except Exception as e:
+        st.error(f"MongoDB connection failed: {e}")
+        return None
+
+db = get_db()
+
 # -----------------------------
-# Custom Styling
+# Authentication Check  
+# -----------------------------
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = False
+
+if db is not None:
+    create_admin_if_not_exists(db)
+
+if not st.session_state["authenticated"]:
+    login(db)
+    st.stop()
+
+# -----------------------------
+# Custom Styling for Dashboard
 # -----------------------------
 st.markdown("""
 <style>
@@ -84,21 +163,6 @@ st.title("HoneyVault Threat Intelligence Dashboard")
 st.markdown("Deception-Driven Encryption Monitoring System")
 
 # -----------------------------
-# Mongo Connection
-# -----------------------------
-@st.cache_resource
-def get_db():
-    try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        client.server_info()
-        return client[DB_NAME]
-    except Exception as e:
-        st.error(f"MongoDB connection failed: {e}")
-        return None
-
-db = get_db()
-
-# -----------------------------
 # Load Logs
 # -----------------------------
 @st.cache_data(ttl=2)
@@ -113,7 +177,9 @@ def load_logs():
 
     for log in logs:
         log["_id"] = str(log.get("_id", ""))
-        log["is_fake"] = bool(log.get("is_fake", False))
+        # Critical Fix: Force Boolean conversion for filtering
+        val = log.get("is_fake", False)
+        log["is_fake"] = True if str(val).lower() == 'true' or val is True else False
 
     df = pd.DataFrame(logs)
 
@@ -121,7 +187,7 @@ def load_logs():
         df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
         df = df.dropna(subset=["timestamp"])
     else:
-        df["timestamp"] = pd.Timestamp.now()
+        df["timestamp"] = datetime.now()
 
     return df
 
@@ -150,6 +216,10 @@ show_real = st.sidebar.checkbox("Show Real", True)
 if st.sidebar.button("Manual Refresh"):
     st.cache_data.clear()
 
+if st.sidebar.button("Logout"):
+    st.session_state["authenticated"] = False
+    st.rerun()
+
 # -----------------------------
 # Load Data
 # -----------------------------
@@ -159,13 +229,17 @@ vault_count, log_count = load_stats()
 # -----------------------------
 # Filters
 # -----------------------------
-filtered_df = df.copy()
-
-if not show_fake:
-    filtered_df = filtered_df[filtered_df["is_fake"] == False]
-
-if not show_real:
-    filtered_df = filtered_df[filtered_df["is_fake"] == True]
+if df.empty:
+    filtered_df = pd.DataFrame()
+else:
+    if show_fake and show_real:
+        filtered_df = df.copy()
+    elif show_fake:
+        filtered_df = df[df["is_fake"] == True]
+    elif show_real:
+        filtered_df = df[df["is_fake"] == False]
+    else:
+        filtered_df = pd.DataFrame()
 
 # -----------------------------
 # System Overview
@@ -182,13 +256,11 @@ colB.metric("Logs Collected", log_count)
 st.subheader("Threat Metrics")
 
 if not filtered_df.empty:
-
     total_requests = len(filtered_df)
     fake_requests = int(filtered_df["is_fake"].sum())
     real_requests = total_requests - fake_requests
 
     fake_ratio = fake_requests / total_requests if total_requests else 0
-    score = max(0.0, 1 - (abs(0.5 - fake_ratio) * 2))
 
     # Threat classification
     if fake_ratio > 0.7:
@@ -198,6 +270,7 @@ if not filtered_df.empty:
     else:
         severity = "Normal"
 
+    # Latency and Dwell calculations
     first_seen = filtered_df["timestamp"].min()
     first_fake = (
         filtered_df[filtered_df["is_fake"] == True]["timestamp"].min()
@@ -253,7 +326,8 @@ if not filtered_df.empty:
         y="count",
         color="is_fake",
         markers=True,
-        title="Requests over Time"
+        title="Requests over Time",
+        color_discrete_map={True: "red", False: "green"}
     )
 
     fig.update_layout(template="plotly_dark")
@@ -284,16 +358,17 @@ if not filtered_df.empty:
 st.subheader("Behavior Insights")
 
 if not filtered_df.empty:
-
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("Top Endpoints Targeted")
-        st.bar_chart(filtered_df["endpoint"].value_counts().head(5))
+        if "endpoint" in filtered_df.columns:
+            st.bar_chart(filtered_df["endpoint"].value_counts().head(5))
 
     with col2:
         st.write("HTTP Methods Used")
-        st.bar_chart(filtered_df["method"].value_counts())
+        if "method" in filtered_df.columns:
+            st.bar_chart(filtered_df["method"].value_counts())
 
 # -----------------------------
 # Logs Table (Styled)
@@ -301,11 +376,10 @@ if not filtered_df.empty:
 st.subheader("Activity Logs")
 
 if not filtered_df.empty:
-
     def highlight_fake(row):
-        return ['background-color: #330000' if row.is_fake else '' for _ in row]
+        return ['background-color: #330000; color: white' if row.is_fake else '' for _ in row]
 
-    columns = [
+    columns_to_show = [
         "timestamp",
         "session_id",
         "endpoint",
@@ -314,8 +388,8 @@ if not filtered_df.empty:
         "response_kind",
     ]
 
-    existing = [col for col in columns if col in filtered_df.columns]
-
+    existing = [col for col in columns_to_show if col in filtered_df.columns]
+    
     styled_df = filtered_df[existing].style.apply(highlight_fake, axis=1)
 
     st.dataframe(styled_df, use_container_width=True)
@@ -329,8 +403,9 @@ if not filtered_df.empty:
     latest = filtered_df.head(10)
 
     for _, row in latest.iterrows():
+        status = "FAKE" if row['is_fake'] else "REAL"
         st.write(
-            f"{row['timestamp']} | {row['endpoint']} | {row['method']} | {'FAKE' if row['is_fake'] else 'REAL'}"
+            f"{row['timestamp']} | {row.get('endpoint', 'N/A')} | {row.get('method', 'N/A')} | {status}"
         )
 
 # -----------------------------
@@ -340,12 +415,13 @@ st.subheader("Detection Insight")
 
 if not filtered_df.empty and fake_requests > 0:
     first_detection = filtered_df[filtered_df["is_fake"] == True]["timestamp"].min()
+    lat_val = detection_latency if detection_latency is not None else 0
 
     st.success(f"""
     Attacker detected at {first_detection}
 
     Fake interactions: {fake_requests}
-    Detection latency: {detection_latency:.2f} seconds
+    Detection latency: {lat_val:.2f} seconds
     Behavior indicates probing or malicious interaction.
     """)
 else:
@@ -361,6 +437,5 @@ st.markdown("HoneyVault Monitoring System")
 # Auto Refresh
 # -----------------------------
 if refresh:
-    st.sidebar.info(f"Refreshing every {refresh_interval} seconds")
     time.sleep(refresh_interval)
     st.rerun()

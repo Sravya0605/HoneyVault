@@ -1,5 +1,5 @@
 from fastapi import APIRouter 
-from app.api import encrypt, decrypt, sinkhole 
+from app.api import encrypt, decrypt, sinkhole, research
 
 api_router = APIRouter() 
 

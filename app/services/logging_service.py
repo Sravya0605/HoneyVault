@@ -1,5 +1,6 @@
 from app.models.logs import AccessLog
 from app.db.mongo import mongo
+from app.utils.security_utils import mask_key
 from datetime import datetime, timezone
 
 
@@ -20,7 +21,7 @@ class LoggingService:
         event_type: str = "api_access",
     ):
         log = AccessLog(
-            api_key=api_key,
+            api_key=mask_key(api_key),  # Log masked key, not plaintext
             endpoint=endpoint,
             method=method,
             is_fake=is_fake,
