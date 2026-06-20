@@ -136,7 +136,6 @@ class DistributionTransformingEncoder:
             ("panorama", 0.01),
             ("sso", 0.01),
             ("transfer", 0.01),
-            ("datasync", 0.01),
             ("audit-manager", 0.01),
             ("license-manager", 0.01),
             ("resource-groups", 0.01),
@@ -187,11 +186,11 @@ class DistributionTransformingEncoder:
         self._Ns = len(self._services)   # ~100 services
         self._Nr = len(self._regions)    # ~21 regions
         self._Nsc = len(self._scopes)    # 3 scopes
-        # New bit allocation: 8 bits service + 6 bits region + 2 bits scope + 48 bits key = 64 bits
-        self._service_bits = 8      # supports up to 256 services (using ~100)
-        self._region_bits = 6       # supports up to 64 regions (using ~21)
+        # New bit allocation: 7 bits service + 5 bits region + 2 bits scope + 83 bits key = 97 bits
+        self._service_bits = 7      # supports up to 128 services (using ~100)
+        self._region_bits = 5       # supports up to 32 regions (using ~21)
         self._scope_bits = 2        # supports 4 scopes (using 3)
-        self._key_bits = 48         # remaining bits for key entropy
+        self._key_bits = 83         # remaining bits for key entropy
         
         # Verify we don't exceed bit allocations
         assert self._Ns <= (1 << self._service_bits), f"Too many services: {self._Ns} > {1 << self._service_bits}"
@@ -268,17 +267,17 @@ class DistributionTransformingEncoder:
         
         self._message_cache_dict[seed] = message
         self._message_cache_order.append(seed)
-    
-    def _inverse_cdf(self, u: float, cdf_table: list) -> str:
+
+    def _inverse_cdf(self, cdf_table: list[tuple[float, str]], u: float) -> str:
         """
         Inverse CDF: map uniform [0, 1) → value via CDF.
-        Essential for DTE: ensures bijective mapping.
+        Essential for DTE: used to sample correlated attributes.
         """
         if u >= 1.0:
             u = 0.9999999
         if u < 0.0:
             u = 0.0
-        
+
         for threshold, value in cdf_table:
             if u < threshold:
                 return value
@@ -320,36 +319,38 @@ class DistributionTransformingEncoder:
     
     def _key_from_entropy(self, entropy: int) -> str:
         """
-        Deterministic, invertible key generation from 48-bit entropy.
-        
+        Deterministic, invertible key generation from entropy.
+
         Maps entropy → AWS-style key chars deterministically.
         Inverse of _entropy_from_key().
         """
         chars = string.ascii_uppercase + string.digits  # 36 chars
-        remaining = self.length - len(self.prefix)  # 16 chars for "AKIA" + 16
-        key = []
-        e = entropy & ((1 << self._key_bits) - 1)  # Mask to key_bits
-        for _ in range(remaining):
-            key.append(chars[e % len(chars)])
+        remaining = self.length - len(self.prefix)
+        key = ["A"] * remaining
+        e = entropy & ((1 << self._key_bits) - 1)
+        for i in range(remaining - 1, -1, -1):
+            key[i] = chars[e % len(chars)]
             e //= len(chars)
         return self.prefix + "".join(key)
     
     def _entropy_from_key(self, api_key: str) -> int:
         """
         Exact inverse of _key_from_entropy().
-        
+
         Recovers the entropy from an AWS-style key.
-        Masked to fit in 48 bits (to ensure seeds fit in 64 bits).
         """
         chars = string.ascii_uppercase + string.digits  # 36 chars
         char_index = {c: i for i, c in enumerate(chars)}
-        body = api_key[len(self.prefix):]  # strip "AKIA"
+        body = api_key[len(self.prefix):]
+        expected_length = self.length - len(self.prefix)
+        if len(body) != expected_length:
+            raise ValueError(
+                f"Invalid API key length: expected {expected_length} chars after prefix, got {len(body)}"
+            )
         entropy = 0
-        base = 1
         for c in body:
-            entropy += char_index.get(c, 0) * base
-            base *= len(chars)
-        return entropy & ((1 << self._key_bits) - 1)  # mask to key_bits (48)
+            entropy = entropy * len(chars) + char_index.get(c, 0)
+        return entropy & ((1 << self._key_bits) - 1)
     
     def encode(self, message: Dict[str, Any]) -> int:
         """
@@ -461,8 +462,8 @@ class DistributionTransformingEncoder:
             s = real_msg["service"]
             self._real_service_counts[s] = self._real_service_counts.get(s, 0) + 1
         if "region" in real_msg:
-            r = real_msg["region"]
-            self._real_region_counts[r] = self._real_region_counts.get(r, 0) + 1
+            region = real_msg["region"]
+            self._real_region_counts[region] = self._real_region_counts.get(region, 0) + 1
         
         # Update distribution confidence based on observations
         if len(self._real_observations) >= 100:

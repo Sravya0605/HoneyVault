@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime, timedelta
 import numpy as np
+import inspect
 
 
 class SinkholeService:
@@ -117,7 +118,11 @@ class SinkholeService:
                 "risk_score": float (0-1),
             }
         """
-        logs = await self.logger.get_logs(limit=1000)
+        logs_result = self.logger.get_logs(limit=1000)
+        if inspect.isawaitable(logs_result):
+            logs = await logs_result
+        else:
+            logs = logs_result
         
         # Filter to recent fake credential accesses
         cutoff_time = time.time() - limit_seconds

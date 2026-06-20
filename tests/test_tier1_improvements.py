@@ -136,7 +136,7 @@ class TestKLExperimentFixed:
         # ====== FEED TO ADAPTIVE LEARNER ======
         # Feed each sample to DTE's observation system
         for service in sampled_services:
-            dte.observe_real_credential("AKIAREALCREDENTIAL1234", {
+            dte.observe_real_credential("AKIAIOSFODNN7EXAMPLE", {
                 "service": service,
                 "region": "us-east-1",
                 "access_scope": "read-only",
@@ -231,7 +231,7 @@ class TestClassifierAttack:
         # Synthetic "real" credentials (uniform distribution)
         real_keys = []
         for _ in range(500):
-            dte.observe_real_credential("AKIAREALCREDENTIAL1234", {
+            dte.observe_real_credential("AKIAIOSFODNN7EXAMPLE", {
                 "service": random.choice([s for s, _ in dte._services]),
                 "region": random.choice([r for r, _ in dte._regions]),
                 "access_scope": random.choice([sc for sc, _ in dte._scopes]),

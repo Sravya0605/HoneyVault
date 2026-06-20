@@ -383,7 +383,7 @@ class TestRealAttackScenarios:
         
         # Create vault
         he = HoneyEncryption()
-        vault_data = he.encrypt_vault("correct_password", "AKIAREALKEY12345678")
+        vault_data = he.encrypt_vault("correct_password", "AKIAIOSFODNN7EXAMPLE")
         
         result = await simulator.scenario_naive_attacker(
             "vault_id_123",
@@ -400,7 +400,7 @@ class TestRealAttackScenarios:
         """Delayed prober should be detected via pattern analysis."""
         simulator = AttackScenarioSimulator()
         he = HoneyEncryption()
-        vault_data = he.encrypt_vault("correct_password", "AKIAREALKEY12345678")
+        vault_data = he.encrypt_vault("correct_password", "AKIAIOSFODNN7EXAMPLE")
         
         result = await simulator.scenario_delayed_prober(
             "vault_id_123",
@@ -420,7 +420,7 @@ class TestRealAttackScenarios:
         """Distributed coordination should be detected on semantic correlation."""
         simulator = AttackScenarioSimulator()
         he = HoneyEncryption()
-        vault_data = he.encrypt_vault("correct_password", "AKIAREALKEY12345678")
+        vault_data = he.encrypt_vault("correct_password", "AKIAIOSFODNN7EXAMPLE")
         
         result = await simulator.scenario_distributed_attacker(
             "vault_id_123",
@@ -436,7 +436,7 @@ class TestRealAttackScenarios:
         """Direct AWS bypass attempts should be blocked by registry."""
         simulator = AttackScenarioSimulator()
         he = HoneyEncryption()
-        vault_data = he.encrypt_vault("correct_password", "AKIAREALKEY12345678")
+        vault_data = he.encrypt_vault("correct_password", "AKIAIOSFODNN7EXAMPLE")
         
         result = await simulator.scenario_sinkhole_bypass_attempt(
             "vault_id_123",
@@ -460,7 +460,7 @@ async def run_attack_scenario_suite() -> Dict:
     simulator = AttackScenarioSimulator()
     he = HoneyEncryption()
     
-    vault_data = he.encrypt_vault("correct_password", "AKIAREALKEY12345678")
+    vault_data = he.encrypt_vault("correct_password", "AKIAIOSFODNN7EXAMPLE")
     
     results = {
         "timestamp": datetime.now().isoformat(),

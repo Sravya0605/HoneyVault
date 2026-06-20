@@ -128,7 +128,7 @@ In a third terminal:
 
 		{
 			"password": "secure123",
-			"aws_api_key": "AKIAREALKEY12345678"
+			"aws_api_key": "AKIAIOSFODNN7EXAMPLE"
 		}
 
 ### Decrypt vault

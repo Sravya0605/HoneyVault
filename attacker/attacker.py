@@ -12,11 +12,7 @@ def run_attack():
         f"{API_URL}/api/encrypt",
         json={
             "password": "secure123",
-            "aws_api_key": "AKIAREALKEY12345678"
-        }
-    )
-
-    vault = encrypt_res.json()["vault"]
+                "aws_api_key": "AKIAIOSFODNN7EXAMPLE"
     vault_id = encrypt_res.json().get("vault_id")
     print("[INFO] Vault acquired by attacker\n")
 

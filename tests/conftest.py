@@ -14,24 +14,19 @@ TEST_DB_NAME = f"{settings.DB_NAME}_test"
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for each test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     yield loop
     loop.close()
 
-@pytest.fixture(scope="session")
-async def test_db_client():
-    """Fixture to create a test database client."""
-    client = AsyncIOMotorClient(TEST_MONGO_URI)
-    yield client
-    client.close()
-
-@pytest.fixture(scope="function", autouse=True)
-async def db(test_db_client):
+@pytest.fixture(scope="function")
+async def db():
     """
     Fixture that provides a test database instance and handles cleanup.
     This fixture is auto-used for every test function.
     """
-    db_instance = test_db_client[TEST_DB_NAME]
+    client = AsyncIOMotorClient(TEST_MONGO_URI)
+    db_instance = client[TEST_DB_NAME]
     
     # Override the app's database getter
     def override_get_database():
@@ -39,13 +34,13 @@ async def db(test_db_client):
         
     mongo.get_database = override_get_database
 
-    # Yield the database instance for tests to use if needed
     yield db_instance
 
     # Teardown: drop all collections in the test database after each test
     collection_names = await db_instance.list_collection_names()
     for name in collection_names:
         await db_instance[name].drop()
+    client.close()
 
 @pytest.fixture(scope="function")
 async def client(db) -> AsyncClient:

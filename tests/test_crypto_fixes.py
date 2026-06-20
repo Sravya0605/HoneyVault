@@ -116,7 +116,7 @@ class TestAES256GCMEncryption:
         # Decrypt with wrong password
         wrong_result = he.decrypt(vault, "wrong_password")
         
-        assert wrong_result["status"] == "decrypted"
+        assert wrong_result["status"] == "fake"
         # Should get a different valid message (not the original)
         # Note: Due to DTE, it's a valid AWS key format even if wrong
         assert "aws_api_key" in wrong_result["data"]
@@ -158,7 +158,7 @@ class TestAES256GCMEncryption:
         # Decryption should still succeed (HE property), but with different message
         result = he.decrypt(vault, "password")
         
-        assert result["status"] == "decrypted"
+        assert result["status"] == "fake"
         # Should get a different (valid) message
         assert "aws_api_key" in result["data"]
 

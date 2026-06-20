@@ -22,7 +22,7 @@ class TestAdaptiveDistribution:
         """Test that observe_real_credential correctly records observations."""
         initial_count = len(dte._real_observations)
         
-        dte.observe_real_credential("AKIAREALCREDENTIAL1234", {
+        dte.observe_real_credential("AKIAIOSFODNN7EXAMPLE", {
             "service": "s3",
             "region": "us-east-1",
             "access_scope": "read-only",

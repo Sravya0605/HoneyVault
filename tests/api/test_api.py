@@ -9,7 +9,7 @@ async def test_create_and_decrypt_vault_success(client):
     # Step 1: Create the vault
     encrypt_payload = {
         "password": "super-secret-password-123",
-        "aws_api_key": "AKIAREALKEY12345678"
+        "aws_api_key": "AKIAIOSFODNN7EXAMPLE"
     }
     encrypt_response = await client.post("/api/encrypt", json=encrypt_payload)
     
@@ -31,7 +31,7 @@ async def test_create_and_decrypt_vault_success(client):
     assert decrypt_response.status_code == 200
     decrypt_data = decrypt_response.json()
     assert decrypt_data["status"] == "success"
-    assert decrypt_data["data"]["aws_api_key"] == "AKIAREALKEY12345678"
+    assert decrypt_data["data"]["aws_api_key"] == "AKIAIOSFODNN7EXAMPLE"
 
 async def test_decrypt_vault_with_wrong_password(client):
     """
@@ -40,7 +40,7 @@ async def test_decrypt_vault_with_wrong_password(client):
     # Step 1: Create the vault
     encrypt_payload = {
         "password": "correct-password",
-        "aws_api_key": "AKIAREALKEY12345678"
+        "aws_api_key": "AKIAIOSFODNN7EXAMPLE"
     }
     encrypt_response = await client.post("/api/encrypt", json=encrypt_payload)
     vault_id = encrypt_response.json()["vault_id"]
@@ -55,7 +55,7 @@ async def test_decrypt_vault_with_wrong_password(client):
     assert decrypt_response.status_code == 200
     decrypt_data = decrypt_response.json()
     assert decrypt_data["status"] == "success"
-    assert decrypt_data["data"]["aws_api_key"] != "AKIAREALKEY12345678"
+    assert decrypt_data["data"]["aws_api_key"] != "AKIAIOSFODNN7EXAMPLE"
 
 async def test_decrypt_nonexistent_vault(client):
     """
@@ -76,7 +76,9 @@ async def test_root_and_health_endpoints(client):
     """
     root_response = await client.get("/")
     assert root_response.status_code == 200
-    assert root_response.json()["message"] == "HoneyVault API is running"
+    root_data = root_response.json()
+    assert root_data["service"] == "HoneyVault v5.0"
+    assert root_data["status"] == "Running"
     
     health_response = await client.get("/health")
     assert health_response.status_code == 200

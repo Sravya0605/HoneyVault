@@ -117,7 +117,7 @@ class HoneyEncryption:
         derived = kdf.derive(password.encode())
         return derived
     
-    def _derive_iv(self, password: str, salt: bytes) -> bytes:
+    def _derive_iv(self, password: str, salt: bytes, length: int = 12) -> bytes:
         """
         Derive nonce from password salt using HMAC.
         
@@ -127,7 +127,7 @@ class HoneyEncryption:
         
         Independent from key derivation for defense-in-depth.
         """
-        return hmac.new(salt, password.encode(), hashlib.sha256).digest()[:12]  # 96-bit for GCM
+        return hmac.new(salt, password.encode(), hashlib.sha256).digest()[:length]
     def encrypt(self, real_message: Dict[str, Any], password: str) -> Dict[str, Any]:
         """
         Encrypt a real message using AES-256-GCM (PRIORITY 5A).
@@ -151,7 +151,7 @@ class HoneyEncryption:
         
         # Encode message to deterministic seed
         seed = self.dte.encode(real_message)
-        seed_bytes = seed.to_bytes(8, byteorder='big')
+        seed_bytes = seed.to_bytes(13, byteorder='big')
         
         # Derive key using Argon2id
         key = self._derive_cipher_key(password, salt)
@@ -195,20 +195,34 @@ class HoneyEncryption:
         DTE.decode() treats all bit sequences equally → valid credential.
         """
         try:
-            salt = base64.urlsafe_b64decode(vault["salt"].encode())
-            nonce = base64.urlsafe_b64decode(vault.get("nonce", b"").encode())
+            salt_value = vault["salt"]
+            nonce_value = vault.get("nonce", b"")
             ciphertext_b64 = vault["ciphertext"]
-            ciphertext = base64.urlsafe_b64decode(ciphertext_b64.encode())
-            tag = base64.urlsafe_b64decode(vault.get("tag", b"").encode())
+            tag_value = vault.get("tag", b"")
+
+            salt = base64.urlsafe_b64decode(
+                salt_value.encode() if isinstance(salt_value, str) else salt_value
+            )
+            nonce = base64.urlsafe_b64decode(
+                nonce_value.encode() if isinstance(nonce_value, str) else nonce_value
+            )
+            ciphertext = base64.urlsafe_b64decode(
+                ciphertext_b64.encode() if isinstance(ciphertext_b64, str) else ciphertext_b64
+            )
+            tag = base64.urlsafe_b64decode(
+                tag_value.encode() if isinstance(tag_value, str) else tag_value
+            )
             
             # Handle legacy AES-CTR vaults (no nonce/tag)
             if not nonce:
-                nonce = self._derive_iv(password, salt)
+                nonce_length = 12 if tag else 16
+                nonce = self._derive_iv(password, salt, length=nonce_length)
             if not tag:
                 tag = b''  # Legacy: no tag
                 
         except Exception:
-            return self._indistinguishable_fake(b'\x00' * 16)
+            # Missing or malformed vault data returns plausible fake with fake status
+            return self._indistinguishable_fake(b'\x00' * 16, password, status="fake")
         
         # Decrypt with AES-256-GCM
         try:
@@ -233,8 +247,8 @@ class HoneyEncryption:
             decryptor = cipher.decryptor()
             seed_bytes = decryptor.update(ciphertext) + decryptor.finalize()
             
-            # Always succeeds - stream cipher decrypts to 8 bytes
-            seed = int.from_bytes(seed_bytes[:8], byteorder='big')
+            # Always succeeds - decrypts to the full seed length
+            seed = int.from_bytes(seed_bytes, byteorder='big')
             
             # Decode to message (handles both real and pseudorandom seeds identically)
             message = self.dte.decode(seed)
@@ -246,25 +260,30 @@ class HoneyEncryption:
             }
         except Exception:
             # On GCM tag failure or other error, return indistinguishable fake
-            return self._indistinguishable_fake(salt)
+            return self._indistinguishable_fake(salt, password, status="fake")
     
-    def _indistinguishable_fake(self, salt: bytes) -> Dict[str, Any]:
+    def _indistinguishable_fake(
+        self,
+        salt: bytes,
+        password: str,
+        status: str = "decrypted"
+    ) -> Dict[str, Any]:
         """
         Generate plausible fake when vault structure is malformed.
         
         This should rarely be called now (AES-CTR always decrypts).
-        For edge cases only (missing ciphertext/salt).
+        For edge cases only (missing ciphertext/salt) or wrong passwords.
         """
-        fake_seed = int(
-            hashlib.sha256(salt).hexdigest(),
-            16
-        ) % (2 ** 64)
+        fake_seed = int.from_bytes(
+            hashlib.sha256(salt + password.encode()).digest(),
+            byteorder='big'
+        ) % (1 << self.dte._key_bits)
         
         message = self.dte.decode(fake_seed)
         # Do NOT include _decryption_path or any metadata that leaks which branch
         
         return {
-            "status": "decrypted",
+            "status": status,
             "data": message,
             "is_real": None
         }

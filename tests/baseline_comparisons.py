@@ -81,7 +81,7 @@ class HoneyTokenOnlyBaseline:
         """Create vault with honeytokens."""
         # Real credentials
         self.real_credentials = [
-            {"id": f"real_{i}", "key": f"AKIAREAL{i:08d}"}
+            {"id": f"real_{i}", "key": f"AKIAIOSFODNN7{i:04d}"}
             for i in range(num_real)
         ]
         
@@ -243,7 +243,7 @@ class StandardVaultBaseline:
     def evaluate(self, num_attacks: int = 1000, real_password: str = "correct123") -> BaselineComparisonMetrics:
         """Run evaluation."""
         # Setup: 100 real credentials
-        real_creds = [f"AKIAREAL{i:08d}" for i in range(100)]
+        real_creds = [f"AKIAIOSFODNN7{i:04d}" for i in range(100)]
         self.store_credentials(real_creds)
         
         detections = 0
@@ -325,7 +325,7 @@ class HEWithoutSinkholeBaseline:
     
     def evaluate(self, num_attacks: int = 1000, real_password: str = "correct123") -> BaselineComparisonMetrics:
         """Run evaluation."""
-        real_credential = "AKIAREALKEY12345678"
+        real_credential = "AKIAIOSFODNN7EXAMPLE"
         self.setup_vault(real_password, real_credential)
         
         detections = 0

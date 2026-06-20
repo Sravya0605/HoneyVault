@@ -306,7 +306,7 @@ class EmpiricialEvaluationSuite:
             guessed_password = np.random.choice(passwords)
             
             # Generate vault with correct password
-            vault = self.he.encrypt_vault(correct_password, "AKIAREALKEY12345678")
+            vault = self.he.encrypt_vault(correct_password, "AKIAIOSFODNN7EXAMPLE")
             
             start = datetime.now()
             result = attacker.attempt_password(vault, guessed_password, correct_password)
@@ -357,7 +357,7 @@ class EmpiricialEvaluationSuite:
                 for j in range(9)
             ])
             
-            vault_data = self.he.encrypt_vault(correct_password, "AKIAREALKEY12345678")
+            vault_data = self.he.encrypt_vault(correct_password, "AKIAIOSFODNN7EXAMPLE")
             vault = vault_data["vault"]
             vault_id = vault_data.get("vault_id")
             
