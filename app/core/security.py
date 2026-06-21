@@ -221,7 +221,8 @@ class HoneyEncryption:
                 tag = b''  # Legacy: no tag
                 
         except Exception:
-            # Missing or malformed vault data returns plausible fake with fake status
+            # Missing or malformed vault data (e.g. tampered/legacy fields)
+            # should return a plausible fake result for callers.
             return self._indistinguishable_fake(b'\x00' * 16, password, status="fake")
         
         # Decrypt with AES-256-GCM
@@ -259,20 +260,19 @@ class HoneyEncryption:
                 "is_real": None  # Caller determines via registry (no secret leaked here)
             }
         except Exception:
-            # On GCM tag failure or other error, return indistinguishable fake
+            # On GCM tag failure (wrong password / tampered ciphertext) or other
+            # decryption error, return an indistinguishable plausible fake.
             return self._indistinguishable_fake(salt, password, status="fake")
     
     def _indistinguishable_fake(
         self,
         salt: bytes,
         password: str,
-        status: str = "decrypted"
+        status: str = "fake"
     ) -> Dict[str, Any]:
         """
-        Generate plausible fake when vault structure is malformed.
-        
-        This should rarely be called now (AES-CTR always decrypts).
-        For edge cases only (missing ciphertext/salt) or wrong passwords.
+        Generate plausible fake when vault structure is malformed or decryption fails.
+        Returns a plausible-looking credential with status 'fake' by default.
         """
         fake_seed = int.from_bytes(
             hashlib.sha256(salt + password.encode()).digest(),

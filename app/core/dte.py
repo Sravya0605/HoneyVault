@@ -10,22 +10,58 @@ from app.core.config import settings
 class DistributionTransformingEncoder:
     """
     TRUE Bijective Distribution-Transforming Encoder.
-    
-    Mathematical foundation:
-    - Finite message space M = {m_0, m_1, ..., m_N-1}
-    - Probability distribution P(m) for each message
-    - BIJECTIVE mapping: seed ↔ message via fixed bit-partitioning
-    
-    Key property: ∀ seed ∈ [0, 2^64), ∃! message ∈ M
-    Critically: encode(decode(seed)) == seed for ALL seeds (proven by construction)
-    
-    Bit layout (64-bit seed):
-    [bits 63-60] = service index (4 bits → 16 values, use 8)
-    [bits 59-57] = region index  (3 bits → 8 values, use 5)
-    [bits 56-55] = scope index   (2 bits → 4 values, use 3)
-    [bits 54-0 ] = key entropy   (55 bits → key character generation)
-    
-    Research angle: Adaptive distribution learning to minimize
+
+    Mathematical foundation
+    -----------------------
+    Message space M  = services x regions x scopes x key_chars
+                     = Ns x Nr x Nsc x Nk   (mixed-radix)
+
+    Seed domain      S = [0, TOTAL)   where TOTAL = Ns x Nr x Nsc x Nk
+
+    Bijection        decode : S -> M   (injective, surjective)
+                     encode : M -> S   (exact inverse of decode)
+
+    Invariant        encode(decode(seed)) == seed
+                     for ALL seed in [0, TOTAL)
+
+    Why this holds for ALL 64-bit integers
+    ---------------------------------------
+    TOTAL = Ns x Nr x Nsc x 2^_key_bits  ~= 2^95.
+
+    Because TOTAL > 2^64, every 64-bit seed already satisfies
+    seed < TOTAL, so the projection  n = seed % TOTAL  is
+    the identity function on 64-bit inputs.  There is no
+    information-losing modular reduction for any seed that
+    FakeKeyGenerator (or any caller using secrets.randbits(64))
+    will ever produce.
+
+    Entropy safety
+    --------------
+    The key body is 16 base-36 characters -> 36^16 ~= 2^82.7 distinct
+    values, which fits strictly inside _key_bits = 83 bits (2^83 > 36^16).
+    The masking in _entropy_from_key() is therefore always a no-op for
+    any key produced by _key_from_entropy(); no entropy is ever discarded.
+
+    Adaptive learning scope
+    -----------------------
+    _update_distributions_from_observations() changes only the *weights*
+    (probabilities) of the existing items.  It never adds or removes items,
+    so Ns and Nr are invariant across learning steps.  _TOTAL is
+    recomputed after every update to keep the invariant valid.
+
+    Mixed-radix layout
+    ------------------
+    seed = ki * (Nsc * Nr * Ns)
+         + sci * (Nr * Ns)
+         + ri  * Ns
+         + si
+
+    service index  si  in [0, Ns)
+    region  index  ri  in [0, Nr)
+    scope   index  sci in [0, Nsc)
+    key     index  ki  in [0, Nk)   Nk = 2^_key_bits
+
+    Research angle: Adaptive distribution learning to minimise
     detectability against ML-based credential classifiers.
     """
 
@@ -200,6 +236,22 @@ class DistributionTransformingEncoder:
         self._Nk = 1 << self._key_bits
         # Total message space is now MUCH larger
         self._TOTAL = self._Ns * self._Nr * self._Nsc * self._Nk
+
+        # ── Bijection guarantee assertions ───────────────────────────────────
+        # 1. Key space must fit in _key_bits so entropy masking is a no-op.
+        chars = string.ascii_uppercase + string.digits
+        key_body_len = self.length - len(self.prefix)
+        _key_space = len(chars) ** key_body_len
+        assert _key_space <= self._Nk, (
+            f"Key space ({_key_space}) exceeds 2^_key_bits ({self._Nk}). "
+            "Increase _key_bits or shorten the key body."
+        )
+        # 2. TOTAL must exceed 2^64 so that seed % TOTAL == seed for all
+        #    64-bit seeds, making encode(decode(seed)) == seed unconditionally.
+        assert self._TOTAL > (1 << 64), (
+            f"TOTAL ({self._TOTAL}) <= 2^64.  The bijection invariant only holds "
+            "mod TOTAL for seeds >= TOTAL.  Increase _key_bits, Ns, Nr, or Nsc."
+        )
         
         # Create reverse lookup indices for bijective encoding
         self._service_index = {s: i for i, (s, _) in enumerate(self._services)}
@@ -354,13 +406,15 @@ class DistributionTransformingEncoder:
     
     def encode(self, message: Dict[str, Any]) -> int:
         """
-        Bijective encode using mixed-radix encoding.
-        
-        Maps message → integer via mixed-radix decomposition.
-        The result is: seed ≡ encoded_message (mod TOTAL)
-        
-        Inverse property: encode(decode(seed)) ≡ seed (mod TOTAL)
-        This is mathematically bijective over the message space.
+        Bijective encode: message -> integer via mixed-radix packing.
+
+        Packing:  encoded = si + Ns*(ri + Nr*(sci + Nsc*ki))
+
+        This is the exact inverse of decode():
+            encode(decode(seed)) == seed  for all seed in [0, TOTAL).
+
+        The final  encoded % TOTAL  is a safety guard only; for any message
+        produced by decode(), encoded is already < TOTAL so the mod is a no-op.
         """
         service = message.get("service", "s3")
         region = message.get("region", "us-east-1")
@@ -385,14 +439,17 @@ class DistributionTransformingEncoder:
 
     def decode(self, seed: int) -> Dict[str, Any]:
         """
-        Bijective decode using mixed-radix decomposition.
-        
-        Maps integer → message via mixed-radix decomposition.
-        The seed is projected: n = seed % TOTAL
-        Then decomposed: (si, ri, sci, ki) via successive division
-        
-        Inverse property: encode(decode(seed)) ≡ seed (mod TOTAL)
-        This is mathematically bijective over the message space.
+        Bijective decode: integer -> message via mixed-radix decomposition.
+
+        The seed is projected:  n = seed % TOTAL
+        Then decomposed:        (si, ri, sci, ki) via successive modular division.
+
+        Bijection invariant:    encode(decode(seed)) == seed
+                                for all seed in [0, TOTAL).
+
+        Because TOTAL ~= 2^95 > 2^64, the projection seed % TOTAL is the
+        identity for every 64-bit seed, so the invariant holds for all
+        inputs produced by secrets.randbits(64).
         """
         # Check cache first
         if seed in self._message_cache_dict:
@@ -530,17 +587,35 @@ class DistributionTransformingEncoder:
         total_s = sum(service_counts.values())
         total_r = sum(region_counts.values())
 
-        # Update distributions (MLE with smoothing)
-        self._services = [(s, c / total_s) for s, c in service_counts.items()]
-        self._regions = [(r, c / total_r) for r, c in region_counts.items()]
-        
+        # Update distributions (MLE with smoothing).
+        # IMPORTANT: preserve the original list order so that existing index
+        # assignments (si, ri) remain valid for any seeds already in the cache.
+        # Only the probabilities change; the items and their positions do not.
+        self._services = [(s, service_counts[s] / total_s) for s, _ in self._services]
+        self._regions  = [(r, region_counts[r]  / total_r) for r, _ in self._regions]
+
+        # ── Resync ALL derived state that depends on the lists ──────────────
+        # _Ns / _Nr must reflect the actual list length; if they drift from
+        # len(_services) the mixed-radix decomposition in decode() will either
+        # raise IndexError or silently produce wrong indices (the bijection bug).
+        self._Ns = len(self._services)
+        self._Nr = len(self._regions)
+        # _TOTAL drives the seed projection (n = seed % _TOTAL).  A stale
+        # _TOTAL means encode(decode(seed)) != seed (the +24 drift bug).
+        self._TOTAL = self._Ns * self._Nr * self._Nsc * self._Nk
+
         # Rebuild lookup indices
         self._service_index = {s: i for i, (s, _) in enumerate(self._services)}
-        self._region_index = {r: i for i, (r, _) in enumerate(self._regions)}
+        self._region_index  = {r: i for i, (r, _) in enumerate(self._regions)}
 
         # Rebuild CDFs for fallback inverse CDF path
         self._service_cdf = self._build_cdf(self._services)
-        self._region_cdf = self._build_cdf(self._regions)
+        self._region_cdf  = self._build_cdf(self._regions)
+
+        # Invalidate decode cache: cached entries encoded with the old _TOTAL
+        # are now stale and will produce wrong results.
+        self._message_cache_dict.clear()
+        self._message_cache_order.clear()
 
         # Recompute confidence
         self._compute_distribution_confidence()
