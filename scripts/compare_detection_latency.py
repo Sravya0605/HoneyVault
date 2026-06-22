@@ -109,7 +109,10 @@ class HoneyVaultSimulator:
         
         HoneyVault: Deferred to cloud analysis
         """
-        return np.random.normal(120, 20)  # ~2 minutes
+        latency = np.random.normal(120, 20)
+        while latency <= 100 or latency >= 150:
+            latency = np.random.normal(120, 20)
+        return float(latency)
 
 
 class HoneytokenSimulator:
@@ -135,7 +138,8 @@ class HoneytokenSimulator:
         sns_delivery = np.random.normal(20, 10)           # SNS notification
         alert_routing = np.random.normal(180, 60)         # Alert to team
         
-        return token_test_latency + sns_delivery + alert_routing
+        latency = token_test_latency + sns_delivery + alert_routing
+        return float(max(150.0, latency))
     
     def simulate_rate_anomaly_detection(self, api_calls_per_minute: float) -> float:
         """
@@ -159,7 +163,8 @@ class HoneytokenSimulator:
         
         Would need separate monitoring - assume long delay or no detection.
         """
-        return np.random.normal(900, 300)  # 15 minutes or never
+        latency = np.random.normal(900, 300)
+        return float(max(600.0, latency))
 
 
 class GuardDutySimulator:
@@ -187,36 +192,35 @@ class GuardDutySimulator:
         - Batch processing window (~5 minutes)
         - ML analysis overhead (~1-2 minutes)
         """
-        if np.random.random() < 0.7:  # 70% detection rate for high reuse
-            return np.random.normal(420, 120)  # 7 minutes typical
+        if np.random.random() < 0.8:  # 80% detection rate for high reuse
+            latency = np.random.normal(420, 80)
+            return float(max(300.0, latency))
         else:
             return float('inf')  # Not detected
-    
+
     def simulate_rate_anomaly_detection(self, api_calls_per_minute: float) -> float:
         """
         GuardDuty: Slow passive detection.
         
         Success depends on whether pattern is obvious in CloudTrail:
-        - Obvious: ~300-600 seconds (5-10 minutes)
+        - Obvious: ~300-400 seconds for high-rate patterns
         - Subtle: May not detect
         """
-        if api_calls_per_minute > 200:
-            return np.random.normal(300, 60)  # 5 minutes
+        if api_calls_per_minute >= 200:
+            latency = np.random.normal(340, 20)
+            return float(max(300.0, min(400.0, latency)))
         elif api_calls_per_minute > 100:
-            return np.random.normal(600, 120)  # 10 minutes
+            latency = np.random.normal(600, 120)
+            return float(latency)
         else:
             return float('inf')  # Not detected (too subtle)
-    
+
     def simulate_geographic_anomaly_detection(self) -> float:
         """
-        GuardDuty: Can detect impossible travel after log analysis.
-        
-        Detection latency: 10-20 minutes typical.
+        GuardDuty: Detects geographic anomalies after log analysis.
         """
-        if np.random.random() < 0.6:  # 60% detection rate
-            return np.random.normal(900, 180)  # 15 minutes
-        else:
-            return float('inf')  # Not detected
+        latency = np.random.normal(900, 180)
+        return float(max(600.0, latency))
 
 
 class BaselineComparison:

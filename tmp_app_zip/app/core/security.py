@@ -94,7 +94,7 @@ class HoneyEncryption:
         self.dte = DistributionTransformingEncoder()
         self._indistinguishability_tests = []
         self._threat_model_evaluations = {}  # Track evaluations per threat model
-    
+
     def _derive_cipher_key(self, password: str, salt: bytes) -> bytes:
         """
         Derive AES-256-GCM key from password using Argon2id (PRIORITY 5B).

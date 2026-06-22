@@ -2,11 +2,9 @@ import string
 import math
 import hmac
 import hashlib
-from collections import Counter
+from functools import lru_cache
 from typing import Dict, Any
 from app.core.config import settings
-
-BASE36_ALPHABET = string.ascii_uppercase + string.digits
 
 
 class DistributionTransformingEncoder:
@@ -336,28 +334,7 @@ class DistributionTransformingEncoder:
             if u < threshold:
                 return value
         return cdf_table[-1][1]
-
-    def _encode_mixed_radix(
-        self,
-        service_index: int,
-        region_index: int,
-        scope_index: int,
-        key_index: int,
-    ) -> int:
-        return service_index + self._Ns * (
-            region_index + self._Nr * (scope_index + self._Nsc * key_index)
-        )
-
-    def _decode_mixed_radix(self, value: int) -> tuple[int, int, int, int]:
-        service_index = value % self._Ns
-        value //= self._Ns
-        region_index = value % self._Nr
-        value //= self._Nr
-        scope_index = value % self._Nsc
-        value //= self._Nsc
-        key_index = value
-        return service_index, region_index, scope_index, key_index
-
+    
     def generate_api_key(self, seed: int) -> str:
         """
         Generate AWS-style API key from seed (deterministic, cryptographically secure).
@@ -399,42 +376,34 @@ class DistributionTransformingEncoder:
         Maps entropy → AWS-style key chars deterministically.
         Inverse of _entropy_from_key().
         """
-        if entropy < 0 or entropy >= self._Nk:
-            raise ValueError("entropy out of range for key generation")
-
-        chars = BASE36_ALPHABET
+        chars = string.ascii_uppercase + string.digits  # 36 chars
         remaining = self.length - len(self.prefix)
         key = ["A"] * remaining
-        e = entropy
+        e = entropy & ((1 << self._key_bits) - 1)
         for i in range(remaining - 1, -1, -1):
             key[i] = chars[e % len(chars)]
             e //= len(chars)
         return self.prefix + "".join(key)
-
+    
     def _entropy_from_key(self, api_key: str) -> int:
         """
         Exact inverse of _key_from_entropy().
 
         Recovers the entropy from an AWS-style key.
         """
-        if not api_key.startswith(self.prefix):
-            raise ValueError("invalid API key prefix")
-
+        chars = string.ascii_uppercase + string.digits  # 36 chars
+        char_index = {c: i for i, c in enumerate(chars)}
         body = api_key[len(self.prefix):]
         expected_length = self.length - len(self.prefix)
         if len(body) != expected_length:
             raise ValueError(
                 f"Invalid API key length: expected {expected_length} chars after prefix, got {len(body)}"
             )
-
-        char_index = {c: i for i, c in enumerate(BASE36_ALPHABET)}
         entropy = 0
         for c in body:
-            if c not in char_index:
-                raise ValueError(f"invalid character in API key body: {c}")
-            entropy = entropy * len(BASE36_ALPHABET) + char_index[c]
+            entropy = entropy * len(chars) + char_index.get(c, 0)
         return entropy & ((1 << self._key_bits) - 1)
-
+    
     def encode(self, message: Dict[str, Any]) -> int:
         """
         Bijective encode: message -> integer via mixed-radix packing.
@@ -444,7 +413,7 @@ class DistributionTransformingEncoder:
         This is the exact inverse of decode():
             encode(decode(seed)) == seed  for all seed in [0, TOTAL).
 
-        The final encoded % TOTAL is a safety guard only; for any message
+        The final  encoded % TOTAL  is a safety guard only; for any message
         produced by decode(), encoded is already < TOTAL so the mod is a no-op.
         """
         service = message.get("service", "s3")
@@ -456,15 +425,17 @@ class DistributionTransformingEncoder:
         si = self._service_index.get(service, 0)
         ri = self._region_index.get(region, 0)
         sci = self._scope_index.get(scope, 0)
-
+        
         # Recover key index from api_key (base-36 decode)
         ki = self._entropy_from_key(api_key)
-
+        
         # Mixed-radix packing: si + Ns*(ri + Nr*(sci + Nsc*ki))
-        encoded = self._encode_mixed_radix(si, ri, sci, ki)
-
+        encoded = si + self._Ns * (ri + self._Nr * (sci + self._Nsc * ki))
+        
         # Ensure result is in valid range (project to message space)
-        return encoded % self._TOTAL
+        encoded = encoded % self._TOTAL
+        
+        return encoded
 
     def decode(self, seed: int) -> Dict[str, Any]:
         """
@@ -480,12 +451,12 @@ class DistributionTransformingEncoder:
         identity for every 64-bit seed, so the invariant holds for all
         inputs produced by secrets.randbits(64).
         """
-        normalized = seed % self._TOTAL
-        if normalized in self._message_cache_dict:
-            return self._message_cache_dict[normalized]
+        # Check cache first
+        if seed in self._message_cache_dict:
+            return self._message_cache_dict[seed]
 
         # Project seed into message space (CRITICAL for bijection)
-        n = normalized
+        n = seed % self._TOTAL
         
         # Mixed-radix decomposition: n = si + Ns*(ri + Nr*(sci + Nsc*ki))
         si = n % self._Ns
@@ -519,19 +490,13 @@ class DistributionTransformingEncoder:
         }
 
         # Cache with LRU eviction
-        self._cache_insert(normalized, message)
+        self._cache_insert(seed, message)
 
         # Track as generated observation
         self._generated_observations.append(message)
 
         return message
     
-    def sample_secret(self, seed: int) -> Dict[str, Any]:
-        return self.decode(seed)
-
-    def sample_multiple(self, count: int, base_seed: int) -> list[Dict[str, Any]]:
-        return [self.decode(base_seed + i * 7919) for i in range(count)]
-
     def observe_real_credential(self, api_key: str, metadata: Dict[str, Any]) -> None:
         """
         Learn from real credentials (adaptive distribution learning).
@@ -608,58 +573,44 @@ class DistributionTransformingEncoder:
         if len(self._real_observations) < 50:
             return  # insufficient data
 
-        # Count observed services, regions, and scopes
+        # Count observed services and regions
         alpha = 0.1  # Laplace smoothing factor
-        service_counts = Counter({s: alpha for s, _ in self._services})
-        region_counts = Counter({r: alpha for r, _ in self._regions})
-        scope_counts = Counter({sc: alpha for sc, _ in self._scopes})
+        service_counts = {s: alpha for s, _ in self._services}
+        region_counts = {r: alpha for r, _ in self._regions}
 
         for obs in self._real_observations:
             if "service" in obs and obs["service"] in service_counts:
                 service_counts[obs["service"]] += 1
             if "region" in obs and obs["region"] in region_counts:
                 region_counts[obs["region"]] += 1
-            if "access_scope" in obs and obs["access_scope"] in scope_counts:
-                scope_counts[obs["access_scope"]] += 1
 
         total_s = sum(service_counts.values())
         total_r = sum(region_counts.values())
-        total_sc = sum(scope_counts.values())
 
         # Update distributions (MLE with smoothing).
         # IMPORTANT: preserve the original list order so that existing index
-        # assignments (si, ri, sci) remain valid for any seeds already in the cache.
+        # assignments (si, ri) remain valid for any seeds already in the cache.
         # Only the probabilities change; the items and their positions do not.
         self._services = [(s, service_counts[s] / total_s) for s, _ in self._services]
-        self._regions = [(r, region_counts[r] / total_r) for r, _ in self._regions]
-        self._scopes = [(sc, scope_counts[sc] / total_sc) for sc, _ in self._scopes]
+        self._regions  = [(r, region_counts[r]  / total_r) for r, _ in self._regions]
 
         # ── Resync ALL derived state that depends on the lists ──────────────
-        # _Ns / _Nr / _Nsc must reflect the actual list lengths; if they drift from
-        # len(_services), len(_regions), or len(_scopes) the mixed-radix decomposition
-        # in decode() will either raise IndexError or silently produce wrong indices.
+        # _Ns / _Nr must reflect the actual list length; if they drift from
+        # len(_services) the mixed-radix decomposition in decode() will either
+        # raise IndexError or silently produce wrong indices (the bijection bug).
         self._Ns = len(self._services)
         self._Nr = len(self._regions)
-        self._Nsc = len(self._scopes)
         # _TOTAL drives the seed projection (n = seed % _TOTAL).  A stale
-        # _TOTAL means encode(decode(seed)) != seed for some inputs.
+        # _TOTAL means encode(decode(seed)) != seed (the +24 drift bug).
         self._TOTAL = self._Ns * self._Nr * self._Nsc * self._Nk
 
         # Rebuild lookup indices
         self._service_index = {s: i for i, (s, _) in enumerate(self._services)}
-        self._region_index = {r: i for i, (r, _) in enumerate(self._regions)}
-        self._scope_index = {sc: i for i, (sc, _) in enumerate(self._scopes)}
+        self._region_index  = {r: i for i, (r, _) in enumerate(self._regions)}
 
         # Rebuild CDFs for fallback inverse CDF path
         self._service_cdf = self._build_cdf(self._services)
-        self._region_cdf = self._build_cdf(self._regions)
-        self._scope_cdf = self._build_cdf(self._scopes)
-
-        # Rebuild service-scoped CDFs in case weights shifted
-        self._service_scope_cdfs = {
-            service: self._build_cdf(self._service_scope_affinity.get(service, self._scopes))
-            for service in self._service_index
-        }
+        self._region_cdf  = self._build_cdf(self._regions)
 
         # Invalidate decode cache: cached entries encoded with the old _TOTAL
         # are now stale and will produce wrong results.
